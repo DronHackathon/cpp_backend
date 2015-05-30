@@ -1,12 +1,12 @@
 from setuptools import setup, Extension
-setup(name='Force_client',
-      version='0.1',
+setup(name='force_api',
+      version='0.6',
       description='Implementation of libforce in python',
       author='Alex Nesterenko',
       author_email='nestorf250@gmail.com',
-      ext_modules=[Extension('force_client',
+      ext_modules=[Extension('force_api',
       							['client.c'],
-      							libraries=['serialport','libforce']
+      							libraries=['serialport','force']
       							)],
-      py_modules=['force_client']
+      py_modules=['force_api']
 )
