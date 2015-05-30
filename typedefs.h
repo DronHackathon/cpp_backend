@@ -24,6 +24,11 @@
 #define PUSH 0x05
 #define PULL 0x06
 
+#define DRONE_LEFT 0x10
+#define DRONE_RIGHT 0x11
+#define DRONE_FORW 0x12
+#define DRONE_BACKW 0x13
+
 // For linear gesture recognition
 #define RECOGN_LEN 5
 

@@ -167,9 +167,6 @@ PyObject *force_recognize(PyObject *self, PyObject *args) {
       gyro_last_time = motion.MeasTime;
       double angles[3] = {motion.DataX, motion.DataY, motion.DataZ};
       jedi_processInput_RotationSpeed(angles, gyro_time);
-      result_gesture = jedi_recognizeAngular();
-      if (result_gesture)
-        return Py_BuildValue("i", result_gesture);
     }
 
     while (buffer_states.AccelDataCount-- &&
@@ -183,7 +180,11 @@ PyObject *force_recognize(PyObject *self, PyObject *args) {
       if (result_gesture)
         return Py_BuildValue("i", result_gesture);
     }
+    result_gesture = jedi_recognizeAngular();
+    if (result_gesture)
+      return Py_BuildValue("i", result_gesture);
   }
+  return Py_BuildValue("i", result_gesture);
 }
 
 #ifdef __cplusplus
