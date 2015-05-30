@@ -6,6 +6,8 @@
 #include "force.h"
 #include "force_api.h"
 
+#include "recognizer.cpp"
+
 #ifdef _WIN32
 #include <windows.h>
 #define usleep(x) Sleep(x / 1000)
@@ -35,6 +37,8 @@ static PyMethodDef ForceMethods[] = {
      "Returns list of all collected gyro data "},
     {"get_accel", force_get_accel, METH_NOARGS,
      "Returns list of all collected accel data "},
+    {"recognize", force_recognize, METH_NOARGS,
+     "Recognizes gesture by itself and return code of recognized state"},
     {NULL, NULL, 0, NULL} /* Sentinel */
 };
 
@@ -47,6 +51,12 @@ PyMODINIT_FUNC initforce_api(void) {
   ForceError = PyErr_NewException("ForceApi.Error", NULL, NULL);
   Py_INCREF(ForceError);
   PyModule_AddObject(m, "error", ForceError);
+}
+
+PyObject *force_recognize(PyObject *self, PyObject *args) {
+  int result = 0;
+
+  return Py_BuildValue("i", result);
 }
 
 PyObject *force_open(PyObject *self, PyObject *args) {

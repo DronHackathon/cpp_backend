@@ -1,6 +1,7 @@
 PROJNAME = cpp_backend
 
-SRC = force_api.h
+DEPS = force_api.h force_api.c
+QUAT = quat_test.c quaternion.c
 EXEC = setup.py
 
 VIRT_ENV_NAME = libjedi
@@ -31,3 +32,7 @@ install_libforce: $(LIBFORCE_H) $(LIBFORCE_SO)
 
 install: all
 	sudo python $(EXEC) install
+
+test_quat: $(QUAT)
+	$(CC) $(QUAT) -o$@ -lm --debug
+	./$@

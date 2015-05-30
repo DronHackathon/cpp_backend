@@ -2,6 +2,12 @@
 #define FORCE_API_H
 
 /**
+ * @desc       force_recognize() - recognizes data got from Force
+ * @return     Code of gesture
+ */
+PyObject *force_recognize(PyObject *self, PyObject *args);
+
+/**
  * @desc       force_open() - Opens force on port
  * @param      port, string
  * @return     nothing
