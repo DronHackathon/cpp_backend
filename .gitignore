@@ -9,7 +9,7 @@
 *.pch
 
 # Compiled Dynamic libraries
-*.so
+# *.so - need to save libforce directly in
 *.dylib
 *.dll
 
