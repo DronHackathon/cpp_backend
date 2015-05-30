@@ -2,6 +2,7 @@ PROJNAME = cpp_backend
 
 DEPS = force_api.h force_api.c
 QUAT = quat_test.c quaternion.c
+RECOGNIZER = recognizer.c jedi_recognizer.h
 EXEC = setup.py
 
 VIRT_ENV_NAME = libjedi
@@ -19,7 +20,7 @@ ifndef $(LIBFORCE_H)
 	LIBFORCE_H = libforce/include/force.h
 endif
 
-all: $(SRC) $(EXEC)
+all: $(SRC) $(EXEC) $(QUAT) $(LIBFORCE_H) $(LIBFORCE_SO)
 	python $(EXEC) build
 
 install_libforce: $(LIBFORCE_H) $(LIBFORCE_SO)
@@ -36,3 +37,6 @@ install: all
 test_quat: $(QUAT)
 	$(CC) $(QUAT) -o$@ -lm --debug
 	./$@
+
+test_recognition: $(RECOGNIZER) $(QUAT)
+	$

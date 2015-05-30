@@ -5,8 +5,8 @@
 #include <Python.h>
 #include "force.h"
 #include "force_api.h"
-
-#include "recognizer.cpp"
+#include "recognizer.c"
+#include "quaternion.c"
 
 #ifdef _WIN32
 #include <windows.h>
@@ -37,6 +37,7 @@ static PyMethodDef ForceMethods[] = {
      "Returns list of all collected gyro data "},
     {"get_accel", force_get_accel, METH_NOARGS,
      "Returns list of all collected accel data "},
+
     {"recognize", force_recognize, METH_NOARGS,
      "Recognizes gesture by itself and return code of recognized state"},
     {NULL, NULL, 0, NULL} /* Sentinel */
@@ -51,12 +52,6 @@ PyMODINIT_FUNC initforce_api(void) {
   ForceError = PyErr_NewException("ForceApi.Error", NULL, NULL);
   Py_INCREF(ForceError);
   PyModule_AddObject(m, "error", ForceError);
-}
-
-PyObject *force_recognize(PyObject *self, PyObject *args) {
-  int result = 0;
-
-  return Py_BuildValue("i", result);
 }
 
 PyObject *force_open(PyObject *self, PyObject *args) {
@@ -146,6 +141,49 @@ PyObject *force_gyro_count(PyObject *self, PyObject *args) {
 PyObject *force_accel_count(PyObject *self, PyObject *args) {
   Force_Communicate(force, &buffer_states, sizeof(ForceBufferStates));
   return Py_BuildValue("i", buffer_states.AccelDataCount);
+}
+
+PyObject *force_recognize(PyObject *self, PyObject *args) {
+  int result_gesture = 0;
+  while (!result_gesture &&
+         Force_Communicate(force, &buffer_states, sizeof(ForceBufferStates))) {
+    ForceMotionData motion;
+    if (buffer_states.BytesLost)
+      fprintf(stderr,
+              "Warnings: Possible data loss! Discarded %u orphan bytes.\n",
+              buffer_states.BytesLost);
+    static uint32_t accel_time = 0;
+    static uint32_t accel_last_time = 0;
+    static uint32_t gyro_time = 0;
+    static uint32_t gyro_last_time = 0;
+
+    if (!buffer_states.GyroDataCount && !buffer_states.AccelDataCount &&
+        !buffer_states.MagDataCount)
+      usleep(10000);
+
+    while (buffer_states.GyroDataCount-- && Force_GetGyroData(force, &motion)) {
+      if (gyro_last_time)
+        gyro_time = motion.MeasTime - gyro_last_time;
+      gyro_last_time = motion.MeasTime;
+      double angles[3] = {motion.DataX, motion.DataY, motion.DataZ};
+      jedi_processInput_RotationSpeed(angles, gyro_time);
+      result_gesture = jedi_recognizeAngular();
+      if (result_gesture)
+        return Py_BuildValue("i", result_gesture);
+    }
+
+    while (buffer_states.AccelDataCount-- &&
+           Force_GetAccelData(force, &motion)) {
+      if (accel_last_time)
+        accel_time = motion.MeasTime - accel_last_time;
+      accel_last_time = motion.MeasTime;
+      double acc[3] = {motion.DataX, motion.DataY, motion.DataZ};
+      jedi_processInput_Acceleration(acc, accel_time);
+      result_gesture = jedi_recognizeLinear();
+      if (result_gesture)
+        return Py_BuildValue("i", result_gesture);
+    }
+  }
 }
 
 #ifdef __cplusplus

@@ -30,16 +30,19 @@ quat *quat_fromVectorAndAngle(double angle, double vector[3]) {
   res->X = sin(angle) * vector[0];
   res->Y = sin(angle) * vector[1];
   res->Z = sin(angle) * vector[2];
+  return res;
 }
 
 quat *quat_fromGravityVector(double vector[3]) {
-  double grav[3] = {0, 0, 1.0};
+  double grav[3] = {0, 0, -1.0};
+  const double modulus =
+      pow(vector[0] * vector[0] + vector[1] * vector[1] + vector[2] * vector[2],
+          0.5);
+  vector[0] /= modulus;
+  vector[1] /= modulus;
+  vector[2] /= modulus;
   double rotation_vec[3] = {-vector[1], vector[0], 0};
-  double angle = asin(pow(
-      (rotation_vec[0] * rotation_vec[0] + rotation_vec[1] * rotation_vec[1]) /
-          (vector[0] * vector[0] + vector[1] * vector[1] +
-           vector[2] * vector[2]),
-      0.5));
+  double angle = asin(grav[2] * vector[2]);
   return quat_fromVectorAndAngle(angle, rotation_vec);
 }
 
@@ -112,7 +115,7 @@ vec3 quat_rotateVector(quat *lhs, double vector[3]) {
 }
 
 vec3 quat_get3EulerAngles(quat *rhs) {
-  const double correction_coef = 9.0f;
+  const double correction_coef = 1e+4;
   double c[5] = {
       round(2 * (rhs->W * rhs->X + rhs->Y * rhs->Z) * correction_coef) /
           correction_coef,
@@ -127,28 +130,27 @@ vec3 quat_get3EulerAngles(quat *rhs) {
   double result[3] = {round(atan2(c[0], c[1]) * 180 / M_PI),
                       round(asin(c[2]) * 180 / M_PI),
                       round(atan2(c[3], c[4]) * 180 / M_PI)};
-  // if (c[0] > -1e-3 && c[0] < 1e-2 && c[1] > -1e-3 && c[1] < 1e-2)
-  //   result[0] = 0.0f;
-  // if (c[3] > -1e-3 && c[3] < 1e-2 && c[4] > -1e-3 && c[4] < 1e-2)
-  //   result[2] = 0.0f;
-  while (result[0] > 180)
-    result[0] -= 2 * 180;
-  while (result[0] < -180)
-    result[0] += 2 * 180;
-  while (result[1] > 180)
-    result[1] -= 2 * 180;
-  while (result[1] < -0)
-    result[1] += 2 * 180;
-  while (result[2] > 90)
-    result[2] -= 2 * 180;
-  while (result[2] < -0)
-    result[2] += 2 * 180;
+  if (c[0] > -1e-3 && c[0] < 1e-2 && c[1] > -1e-3 && c[1] < 1e-2)
+    result[0] = 0.0f;
+  if (c[3] > -1e-3 && c[3] < 1e-2 && c[4] > -1e-3 && c[4] < 1e-2)
+    result[2] = 0.0f;
+  // while (result[0] > 180)
+  //   result[0] -= 180;
+  // while (result[0] < -180)
+  //   result[0] += 180;
+  // while (result[1] > 180)
+  //   result[1] -= 180;
+  // while (result[1] < -0)
+  //   result[1] += 180;
+  // while (result[2] > 90)
+  //   result[2] -= 180;
+  // while (result[2] < -0)
+  //   result[2] += 180;
   vec3 r = {result[0], result[1], result[2]};
   return r;
 }
 
 quat quat_inverted(quat *rhs) {
-  const double modulus = quat_modulus(rhs);
   quat res = {rhs->W, -rhs->X, -rhs->Y, -rhs->Z};
   return res;
 }
@@ -157,4 +159,13 @@ double quat_modulus(quat *rhs) {
   return pow(rhs->W * rhs->W + rhs->X * rhs->X + rhs->Y * rhs->Y +
                  rhs->Z * rhs->Z,
              0.5);
+}
+
+quat *quat_normalize(quat *rhs) {
+  const double modulus = quat_modulus(rhs);
+  rhs->W /= modulus;
+  rhs->X /= modulus;
+  rhs->Y /= modulus;
+  rhs->Z /= modulus;
+  return rhs;
 }

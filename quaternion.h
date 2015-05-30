@@ -101,4 +101,11 @@ quat quat_inverted(quat *rhs);
  */
 double quat_modulus(quat *rhs);
 
+/**
+ * @desc       Normalizes quaternion
+ * @param      Pointer to quat to be normalized
+ * @return     Pointer to normalized rhs
+ */
+quat *quat_normalize(quat *rhs);
+
 #endif
