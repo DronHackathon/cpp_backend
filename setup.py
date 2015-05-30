@@ -5,7 +5,7 @@ setup(name='force_api',
       author='Alex Nesterenko',
       author_email='nestorf250@gmail.com',
       ext_modules=[Extension('force_api',
-      							['client.c'],
+      							['force_api.c'],
       							libraries=['serialport','force']
       							)],
       py_modules=['force_api']

@@ -1,13 +1,13 @@
 PROJNAME = cpp_backend
 
-SRC = client.c
+SRC = force_api.h
 EXEC = setup.py
 
 VIRT_ENV_NAME = libjedi
 VIRT_ENV_EXISTS = $(ls | grep libjedi)
 
 ifndef $(PREFIX)
-	PREFIX = /
+	PREFIX = /usr/
 endif
 
 ifndef $(LIBFORCE_SO)

@@ -4,6 +4,7 @@
 //#include <algorithm>
 #include <Python.h>
 #include "force.h"
+#include "force_api.h"
 
 #ifdef _WIN32
 #include <windows.h>
@@ -12,35 +13,73 @@
 #include <signal.h>
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 static ForceBufferStates buffer_states;
-static PyObject *ClientError;
+static PyObject *ForceError;
 static ForceInstance *force;
 
-PyObject *client_open(PyObject *self, PyObject *args) {
+static PyMethodDef ForceMethods[] = {
+    {"open", force_open, METH_VARARGS,
+     "Opens port. Usage Force.open(port_name)"},
+    {"close", force_close, METH_NOARGS, "Closes port. Usage Force.close()"},
+
+    {"gyro_count", force_gyro_count, METH_NOARGS,
+     "Returns count of collected gyro data"},
+    {"accel_count", force_accel_count, METH_NOARGS,
+     "Returns count of collected accel data"},
+
+    {"get_gyro", force_get_gyro, METH_NOARGS,
+     "Returns list of all collected gyro data "},
+    {"get_accel", force_get_accel, METH_NOARGS,
+     "Returns list of all collected accel data "},
+    {NULL, NULL, 0, NULL} /* Sentinel */
+};
+
+PyMODINIT_FUNC initforce_api(void) {
+  PyObject *m;
+  m = Py_InitModule("force_api", ForceMethods);
+  if (!m)
+    return;
+
+  ForceError = PyErr_NewException("ForceApi.Error", NULL, NULL);
+  Py_INCREF(ForceError);
+  PyModule_AddObject(m, "error", ForceError);
+}
+
+PyObject *force_open(PyObject *self, PyObject *args) {
   char *portName;
   if (!PyArg_ParseTuple(args, "s", &portName)) {
-    PyErr_SetString(ClientError, "Error: Invalid usage of function");
+    PyErr_SetString(ForceError, "Error: Invalid usage of function");
     return NULL;
   }
 
   uint32_t major, minor;
   Force_GetLibraryVersion(&major, &minor);
   if (major != 0) {
-    PyErr_SetString(ClientError, "Error: libforce v0.x is only supported");
+    PyErr_SetString(ForceError, "Error: libforce v0.x is only supported");
     return NULL;
   }
 
   // open the device
   force = Force_Open(portName);
   if (!force) {
-    PyErr_SetString(ClientError, "Error: could not open the device");
+    PyErr_SetString(ForceError, "Error: could not open the device");
     return NULL;
   }
+
+  Force_SetAccelConfig(force, LSM330DL_A_RANGE_4G, LSM330DL_A_DATA_RATE_400HZ,
+                       0);
+  Force_SetGyroConfig(force, LSM330DL_G_RANGE_2000DPS,
+                      LSM330DL_G_ODR_800HZ_LPF_110HZ, 0);
+  Force_SetMagConfig(force, LIS3MDL_RANGE_8GS, LIS3MDL_DATA_RATE_1_25HZ, 0);
 
   // init the device
   if (!Force_Init(force)) {
     Force_Close(force);
-    PyErr_SetString(ClientError, "Error: could not init the device");
+    PyErr_SetString(ForceError, "Error: could not init the device");
     return NULL;
   }
   // uint32_t fw_rev, proto_rev;
@@ -48,16 +87,16 @@ PyObject *client_open(PyObject *self, PyObject *args) {
   // // printf("Connected to Force: firmware=%u, protocol=%u\n", fw_rev,
   // proto_rev);
   Py_RETURN_NONE;
-} // client_open
+} // Force_open
 
-PyObject *client_close(PyObject *self, PyObject *args) {
+PyObject *force_close(PyObject *self, PyObject *args) {
   Force_Close(force);
   if (!force)
     free(force);
   Py_RETURN_NONE;
 }
 
-PyObject *client_get_gyro(PyObject *self, PyObject *args) {
+PyObject *force_get_gyro(PyObject *self, PyObject *args) {
   Force_Communicate(force, &buffer_states, sizeof(ForceBufferStates));
   PyObject *list = PyList_New(0);
   ForceMotionData motion;
@@ -68,13 +107,12 @@ PyObject *client_get_gyro(PyObject *self, PyObject *args) {
       PyList_Append(temp_list, Py_BuildValue("i", motion.DataY));
       PyList_Append(temp_list, Py_BuildValue("i", motion.DataZ));
       PyList_Append(list, temp_list);
-      free(temp_list);
     }
   }
   return list;
 }
 
-PyObject *client_get_accel(PyObject *self, PyObject *args) {
+PyObject *force_get_accel(PyObject *self, PyObject *args) {
   Force_Communicate(force, &buffer_states, sizeof(ForceBufferStates));
   PyObject *list = PyList_New(0);
   ForceMotionData motion;
@@ -85,45 +123,21 @@ PyObject *client_get_accel(PyObject *self, PyObject *args) {
       PyList_Append(temp_list, Py_BuildValue("i", motion.DataY));
       PyList_Append(temp_list, Py_BuildValue("i", motion.DataZ));
       PyList_Append(list, temp_list);
-      free(temp_list);
     }
   }
   return list;
 }
 
-PyObject *client_gyro_count(PyObject *self, PyObject *args) {
+PyObject *force_gyro_count(PyObject *self, PyObject *args) {
   Force_Communicate(force, &buffer_states, sizeof(ForceBufferStates));
   return Py_BuildValue("i", buffer_states.GyroDataCount);
 }
 
-PyObject *client_accel_count(PyObject *self, PyObject *args) {
+PyObject *force_accel_count(PyObject *self, PyObject *args) {
   Force_Communicate(force, &buffer_states, sizeof(ForceBufferStates));
   return Py_BuildValue("i", buffer_states.AccelDataCount);
 }
 
-static PyMethodDef ClientMethods[] = {
-    {"open", client_open, METH_VARARGS,
-     "Opens port. Usage client.open(port_name)"},
-    {"close", client_close, METH_NOARGS, "Closes port. Usage client.close()"},
-
-    {"gyro_count", client_gyro_count, METH_NOARGS,
-     "Returns count of collected gyro data"},
-    {"accel_count", client_accel_count, METH_NOARGS,
-     "Returns count of collected accel data"},
-
-    {"get_gyro", client_get_gyro, METH_NOARGS,
-     "Returns list of all collected gyro data "},
-    {"get_accel", client_get_accel, METH_NOARGS,
-     "Returns list of all collected accel data "},
-    {NULL, NULL, 0, NULL} /* Sentinel */ co};
-
-PyMODINIT_FUNC initforce_api(void) {
-  PyObject *m;
-  m = Py_InitModule("force_api", ClientMethods);
-  if (!m)
-    return;
-
-  ClientError = PyErr_NewException("client.error", NULL, NULL);
-  Py_INCREF(ClientError);
-  PyModule_AddObject(m, "error", ClientError);
+#ifdef __cplusplus
 }
+#endif
