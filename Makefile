@@ -2,7 +2,7 @@ PROJNAME = cpp_backend
 
 DEPS = force_api.h force_api.c
 QUAT = quat_test.c quaternion.c
-RECOGNIZER = recognizer.c jedi_recognizer.h
+RECOGNIZER = recognizer.c recognizer.h
 EXEC = setup.py
 
 VIRT_ENV_NAME = libjedi

@@ -6,7 +6,8 @@ setup(name='force_api',
       author_email='nestorf250@gmail.com',
       ext_modules=[Extension('force_api',
       							['force_api.c'],
-      							libraries=['serialport','force']
+      							libraries=['serialport','force'],
+                                  extra_compile_args=['-std=c11']
       							)],
       py_modules=['force_api']
 )
